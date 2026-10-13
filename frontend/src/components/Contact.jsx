@@ -1,7 +1,12 @@
 import { useState } from 'react'
 
 const INITIAL_FORM = { name: '', email: '', subject: '', message: '' }
-const API_URL = import.meta.env.VITE_API_URL || '/api'
+// In development, '/api' is proxied to the local backend (see vite.config.js).
+// Production builds fall back to the deployed backend if VITE_API_URL isn't set.
+const DEFAULT_API_URL = import.meta.env.PROD
+  ? 'https://my-portfolio-hazel-theta-31.vercel.app/api'
+  : '/api'
+const API_URL = (import.meta.env.VITE_API_URL || DEFAULT_API_URL).replace(/\/+$/, '')
 
 export default function Contact() {
   const [form, setForm] = useState(INITIAL_FORM)
