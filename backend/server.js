@@ -23,6 +23,12 @@ app.set('trust proxy', 1)
 app.use(cors({ origin: allowedOrigins.length ? allowedOrigins : true }))
 app.use(express.json({ limit: '20kb' }))
 
+// Visiting the backend URL in a browser shouldn't look like an error.
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', message: 'Portfolio backend is running. The contact form posts to /api/contact.' })
+})
+app.get('/favicon.ico', (req, res) => res.status(204).end())
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' })
 })
