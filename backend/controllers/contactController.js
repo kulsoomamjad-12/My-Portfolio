@@ -5,9 +5,12 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const asTrimmedString = (value) => (typeof value === 'string' ? value.trim() : '')
 
-function validate({ email, subject, message }) {
-  if (!email || !subject || !message) {
-    return 'Email, subject, and message are all required.'
+function validate({ name, email, subject, message }) {
+  if (!name || !email || !subject || !message) {
+    return 'Name, email, subject, and message are all required.'
+  }
+  if (name.length > LIMITS.name) {
+    return `Name must be at most ${LIMITS.name} characters.`
   }
   if (email.length > LIMITS.email || !EMAIL_RE.test(email)) {
     return 'Please provide a valid email address.'
@@ -26,6 +29,7 @@ function validate({ email, subject, message }) {
 export async function createContact(req, res) {
   const body = req.body ?? {}
   const data = {
+    name: asTrimmedString(body.name),
     email: asTrimmedString(body.email).toLowerCase(),
     subject: asTrimmedString(body.subject),
     message: asTrimmedString(body.message),

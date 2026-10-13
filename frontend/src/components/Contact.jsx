@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-const INITIAL_FORM = { email: '', subject: '', message: '' }
+const INITIAL_FORM = { name: '', email: '', subject: '', message: '' }
 const API_URL = import.meta.env.VITE_API_URL || '/api'
 
 export default function Contact() {
@@ -50,6 +50,23 @@ export default function Contact() {
       </h2>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <div>
+          <label htmlFor="name" className="block text-sm font-medium mb-2">
+            Your name
+          </label>
+          <input
+            id="name"
+            name="name"
+            type="text"
+            required
+            autoComplete="name"
+            value={form.name}
+            onChange={handleChange}
+            placeholder="John Doe"
+            className="w-full rounded-xl border border-slate-300 dark:border-white/10 bg-white dark:bg-card px-4 py-3 outline-none focus:border-cyan transition-colors"
+          />
+        </div>
+
         <div>
           <label htmlFor="email" className="block text-sm font-medium mb-2">
             Your email

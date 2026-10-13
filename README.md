@@ -38,7 +38,7 @@ npm run dev
 Runs at http://localhost:5000, requires a running MongoDB instance
 (local or Atlas) at the `MONGO_URI` you set in `.env`.
 
-- `POST /api/contact` — submit the contact form (`email`, `subject`, `message`)
+- `POST /api/contact` — submit the contact form (`name`, `email`, `subject`, `message`)
 - `GET /api/contact` — list submissions (requires header `x-admin-key: <ADMIN_KEY>`)
 - `GET /api/health` — health check
 

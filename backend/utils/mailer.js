@@ -41,7 +41,7 @@ export async function verifyMailer() {
   }
 }
 
-export async function sendContactNotification({ email, subject, message }) {
+export async function sendContactNotification({ name, email, subject, message }) {
   if (!isConfigured()) {
     console.warn('Email notification skipped: EMAIL_USER or EMAIL_PASS not set')
     return
@@ -50,12 +50,13 @@ export async function sendContactNotification({ email, subject, message }) {
   await getTransporter().sendMail({
     from: `"Portfolio Contact Form" <${process.env.EMAIL_USER}>`,
     to: process.env.EMAIL_TO || process.env.EMAIL_USER,
-    replyTo: email,
-    subject: `New contact form message: ${subject.replace(/[\r\n]+/g, ' ')}`,
-    text: `You received a new message from your portfolio contact form.\n\nFrom: ${email}\nSubject: ${subject}\n\nMessage:\n${message}`,
+    replyTo: { name, address: email },
+    subject: `New contact form message from ${name}: ${subject}`.replace(/[\r\n]+/g, ' '),
+    text: `You received a new message from your portfolio contact form.\n\nName: ${name}\nEmail: ${email}\nSubject: ${subject}\n\nMessage:\n${message}`,
     html: `
       <p>You received a new message from your portfolio contact form.</p>
-      <p><strong>From:</strong> ${escapeHtml(email)}</p>
+      <p><strong>Name:</strong> ${escapeHtml(name)}</p>
+      <p><strong>Email:</strong> ${escapeHtml(email)}</p>
       <p><strong>Subject:</strong> ${escapeHtml(subject)}</p>
       <p><strong>Message:</strong></p>
       <p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>

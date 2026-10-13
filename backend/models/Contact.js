@@ -1,6 +1,7 @@
 import mongoose from 'mongoose'
 
 export const LIMITS = {
+  name: 100,
   email: 254,
   subject: 200,
   message: 5000,
@@ -8,6 +9,12 @@ export const LIMITS = {
 
 const contactSchema = new mongoose.Schema(
   {
+    name: {
+      type: String,
+      required: [true, 'Name is required.'],
+      trim: true,
+      maxlength: [LIMITS.name, `Name must be at most ${LIMITS.name} characters.`],
+    },
     email: {
       type: String,
       required: [true, 'Email is required.'],
