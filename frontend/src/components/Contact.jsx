@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 const INITIAL_FORM = { email: '', subject: '', message: '' }
+const API_URL = import.meta.env.VITE_API_URL || '/api'
 
 export default function Contact() {
   const [form, setForm] = useState(INITIAL_FORM)
@@ -16,25 +17,30 @@ export default function Contact() {
     setStatus('sending')
     setErrorMsg('')
 
+    let res
     try {
-      const res = await fetch('/api/contact', {
+      res = await fetch(`${API_URL}/contact`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        throw new Error(data.message || 'Something went wrong')
-      }
-
-      setStatus('success')
-      setForm(INITIAL_FORM)
-    } catch (err) {
+    } catch {
       setStatus('error')
-      setErrorMsg(err.message)
+      setErrorMsg('Could not reach the server. Please check your connection and try again.')
+      return
     }
+
+    // The server may answer with a non-JSON error page (e.g. when it's down).
+    const data = await res.json().catch(() => ({}))
+
+    if (!res.ok) {
+      setStatus('error')
+      setErrorMsg(data.message || 'Something went wrong. Please try again later.')
+      return
+    }
+
+    setStatus('success')
+    setForm(INITIAL_FORM)
   }
 
   return (

@@ -2,21 +2,47 @@ import nodemailer from 'nodemailer'
 
 let transporter
 
+const isConfigured = () => Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS)
+
 function getTransporter() {
   if (!transporter) {
     transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
         user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        // Google displays App Passwords with spaces ("abcd efgh ijkl mnop").
+        pass: process.env.EMAIL_PASS.replace(/\s+/g, ''),
       },
     })
   }
   return transporter
 }
 
+const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }
+const escapeHtml = (str) => str.replace(/[&<>"']/g, (ch) => HTML_ESCAPES[ch])
+
+// Checks the email login at startup so a bad password shows up in the logs
+// right away instead of silently on the first form submission.
+export async function verifyMailer() {
+  if (!isConfigured()) {
+    console.warn('Email notifications disabled: EMAIL_USER or EMAIL_PASS not set')
+    return
+  }
+
+  try {
+    await getTransporter().verify()
+    console.log('Email notifications ready')
+  } catch (err) {
+    console.error(`Email notifications will NOT be sent. Gmail login failed: ${err.message}`)
+    console.error(
+      'EMAIL_PASS must be a 16-letter Gmail App Password, not your normal Gmail password.\n' +
+        'Turn on 2-Step Verification, then create one at https://myaccount.google.com/apppasswords',
+    )
+  }
+}
+
 export async function sendContactNotification({ email, subject, message }) {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+  if (!isConfigured()) {
     console.warn('Email notification skipped: EMAIL_USER or EMAIL_PASS not set')
     return
   }
@@ -25,14 +51,14 @@ export async function sendContactNotification({ email, subject, message }) {
     from: `"Portfolio Contact Form" <${process.env.EMAIL_USER}>`,
     to: process.env.EMAIL_TO || process.env.EMAIL_USER,
     replyTo: email,
-    subject: `New contact form message: ${subject}`,
+    subject: `New contact form message: ${subject.replace(/[\r\n]+/g, ' ')}`,
     text: `You received a new message from your portfolio contact form.\n\nFrom: ${email}\nSubject: ${subject}\n\nMessage:\n${message}`,
     html: `
       <p>You received a new message from your portfolio contact form.</p>
-      <p><strong>From:</strong> ${email}</p>
-      <p><strong>Subject:</strong> ${subject}</p>
+      <p><strong>From:</strong> ${escapeHtml(email)}</p>
+      <p><strong>Subject:</strong> ${escapeHtml(subject)}</p>
       <p><strong>Message:</strong></p>
-      <p>${message.replace(/\n/g, '<br>')}</p>
+      <p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>
     `,
   })
 }

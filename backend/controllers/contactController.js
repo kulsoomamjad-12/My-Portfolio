@@ -1,43 +1,58 @@
-import Contact from '../models/Contact.js'
+import Contact, { LIMITS } from '../models/Contact.js'
 import { sendContactNotification } from '../utils/mailer.js'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-export async function createContact(req, res) {
-  try {
-    const { email, subject, message } = req.body
+const asTrimmedString = (value) => (typeof value === 'string' ? value.trim() : '')
 
-    if (!email || !subject || !message) {
-      return res.status(400).json({ message: 'Email, subject, and message are all required.' })
-    }
-
-    if (!EMAIL_RE.test(email)) {
-      return res.status(400).json({ message: 'Please provide a valid email address.' })
-    }
-
-    const contact = await Contact.create({ email, subject, message })
-
-    sendContactNotification({ email, subject, message }).catch((err) => {
-      console.error('Failed to send contact notification email:', err.message)
-    })
-
-    return res.status(201).json({ message: 'Message received. Thank you!', contact })
-  } catch {
-    return res.status(500).json({ message: 'Something went wrong. Please try again later.' })
+function validate({ email, subject, message }) {
+  if (!email || !subject || !message) {
+    return 'Email, subject, and message are all required.'
   }
+  if (email.length > LIMITS.email || !EMAIL_RE.test(email)) {
+    return 'Please provide a valid email address.'
+  }
+  if (subject.length > LIMITS.subject) {
+    return `Subject must be at most ${LIMITS.subject} characters.`
+  }
+  if (message.length > LIMITS.message) {
+    return `Message must be at most ${LIMITS.message} characters.`
+  }
+  return null
+}
+
+// Express 5 forwards errors thrown in async handlers to the error middleware,
+// so no try/catch is needed here.
+export async function createContact(req, res) {
+  const body = req.body ?? {}
+  const data = {
+    email: asTrimmedString(body.email).toLowerCase(),
+    subject: asTrimmedString(body.subject),
+    message: asTrimmedString(body.message),
+  }
+
+  const error = validate(data)
+  if (error) {
+    return res.status(400).json({ message: error })
+  }
+
+  const contact = await Contact.create(data)
+
+  // The message is already saved, so a failed email shouldn't fail the request.
+  sendContactNotification(data).catch((err) => {
+    console.error('Failed to send contact notification email:', err.message)
+  })
+
+  return res.status(201).json({ message: 'Message received. Thank you!', id: contact._id })
 }
 
 export async function getContacts(req, res) {
-  try {
-    const adminKey = req.headers['x-admin-key']
+  const adminKey = req.headers['x-admin-key']
 
-    if (!process.env.ADMIN_KEY || adminKey !== process.env.ADMIN_KEY) {
-      return res.status(401).json({ message: 'Unauthorized' })
-    }
-
-    const contacts = await Contact.find().sort({ createdAt: -1 })
-    return res.status(200).json(contacts)
-  } catch {
-    return res.status(500).json({ message: 'Something went wrong. Please try again later.' })
+  if (!process.env.ADMIN_KEY || adminKey !== process.env.ADMIN_KEY) {
+    return res.status(401).json({ message: 'Unauthorized' })
   }
+
+  const contacts = await Contact.find().sort({ createdAt: -1 })
+  return res.status(200).json(contacts)
 }
